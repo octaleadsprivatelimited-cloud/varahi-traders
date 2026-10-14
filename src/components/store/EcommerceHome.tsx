@@ -209,15 +209,6 @@ export function EcommerceHome() {
         <span>Secure, careful delivery</span>
       </div>
       <header className="store-header">
-        <button
-          aria-label={menu ? "Close navigation" : "Open navigation"}
-          aria-expanded={menu}
-          aria-controls="mobile-store-navigation"
-          className="icon-btn mobile-only"
-          onClick={() => setMenu((open) => !open)}
-        >
-          {menu ? <X /> : <Menu />}
-        </button>
         <Logo />
         <nav>
           <Link to="/shop">Oil collection</Link>
@@ -245,6 +236,16 @@ export function EcommerceHome() {
           >
             <ShoppingBag />
             <em>{count}</em>
+          </button>
+          <button
+            type="button"
+            aria-label={menu ? "Close navigation" : "Open navigation"}
+            aria-expanded={menu}
+            aria-controls="mobile-store-navigation"
+            className="icon-btn mobile-only"
+            onClick={() => setMenu((open) => !open)}
+          >
+            {menu ? <X /> : <Menu />}
           </button>
         </div>
       </header>

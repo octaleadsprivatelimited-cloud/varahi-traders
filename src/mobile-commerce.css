@@ -226,9 +226,11 @@
     height: 62px;
     padding: 0 12px;
     background: rgba(251, 247, 236, 0.96);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .store-header .brand {
+    justify-self: start;
     gap: 8px;
     letter-spacing: 0.13em;
   }

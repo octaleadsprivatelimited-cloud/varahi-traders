@@ -36,16 +36,6 @@ export function StoreHeader() {
         <span>Secure payments</span>
       </div>
       <header className="store-header multipage">
-        <button
-          className="icon-btn mobile-only"
-          type="button"
-          aria-label={menu ? "Close navigation" : "Open navigation"}
-          aria-expanded={menu}
-          aria-controls="mobile-store-navigation"
-          onClick={() => setMenu((open) => !open)}
-        >
-          {menu ? <X /> : <Menu />}
-        </button>
         <StoreBrand />
         <nav aria-label="Store navigation">
           <Link to="/shop">Shop all</Link>
@@ -68,6 +58,16 @@ export function StoreHeader() {
             <ShoppingBag />
             <em>{count}</em>
           </Link>
+          <button
+            className="icon-btn mobile-only"
+            type="button"
+            aria-label={menu ? "Close navigation" : "Open navigation"}
+            aria-expanded={menu}
+            aria-controls="mobile-store-navigation"
+            onClick={() => setMenu((open) => !open)}
+          >
+            {menu ? <X /> : <Menu />}
+          </button>
         </div>
       </header>
       <div id="page-product-search"><FloatingProductSearch open={search} onClose={() => setSearch(false)} /></div>
