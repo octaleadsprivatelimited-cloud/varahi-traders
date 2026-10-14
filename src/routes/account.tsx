@@ -1,0 +1,2 @@
+import {createFileRoute, redirect} from "@tanstack/react-router";import {CustomerPortal} from "@/components/portal/CustomerPortal";
+export const Route=createFileRoute("/account")({beforeLoad:({location})=>{if(new URLSearchParams(location.searchStr).get("tab")?.toLowerCase()==="reviews")throw redirect({to:"/account",search:{},replace:true});},component:CustomerPortal,head:()=>({meta:[{name:"robots",content:"noindex, nofollow"},{title:"My account — Sri Varahi Traders"}]})});

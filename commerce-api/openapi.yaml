@@ -1,0 +1,1093 @@
+openapi: 3.1.0
+info:
+  title: Sri Varahi Traders Commerce API
+  version: 1.0.0
+servers:
+  - url: http://localhost:4010
+paths:
+  /health:
+    get:
+      summary: Service health
+      responses: { "200": { description: Healthy } }
+  /api/v1/auth/providers:
+    get:
+      summary: Google sign-in availability and public Firebase web configuration
+      responses: { "200": { description: "Firebase enabled status and public projectId, apiKey, authDomain and optional appId" } }
+  /api/v1/auth/google:
+    post:
+      summary: Verify Firebase Google identity and issue a session with the sole-admin role policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GoogleCredential" }
+      responses:
+        "200": { description: Access token issued }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { description: Existing account requires administrator assistance }
+        "503": { description: Google sign-in unavailable or not configured }
+  /api/v1/auth/refresh:
+    post:
+      summary: Rotate refresh session
+      responses:
+        {
+          "200": { description: Access token issued },
+          "401": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/auth/logout:
+    post:
+      summary: Revoke refresh session
+      responses: { "200": { description: Logged out } }
+  /api/v1/products:
+    get:
+      summary: Search active products and variants
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: category, schema: { type: string } }
+      responses: { "200": { description: Product list } }
+  /api/v1/products/{id}:
+    get:
+      summary: Product details
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        {
+          "200": { description: Product },
+          "404": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/account/reviews:
+    get:
+      summary: List the signed-in customer's reviews and moderation status
+      security: [{ bearerAuth: [] }]
+      responses:
+        {
+          "200": { description: Customer reviews },
+          "401": { $ref: "#/components/responses/Error" },
+        }
+    post:
+      summary: Submit one product review for moderation
+      security: [{ bearerAuth: [] }]
+      responses:
+        {
+          "201": { description: Review submitted },
+          "409": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/account/payments:
+    get:
+      summary: List payment attempts, gateway references and refunds owned by the signed-in customer
+      security: [{ bearerAuth: [] }]
+      responses:
+        {
+          "200": { description: Customer payment history },
+          "401": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/account/returns:
+    get:
+      summary: List the signed-in customer's latest return requests
+      description: Returns at most the latest 100 requests, with selected line quantities and no customer identifier.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Customer-safe return history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { const: true }
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/CustomerReturn" }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Request a return for selected purchased quantities
+      description: Omit items to select every purchased line. The delivered order and request are transitioned atomically.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerReturnCreate" }
+      responses:
+        "201":
+          description: Customer-safe created return
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { const: true }
+                  data: { $ref: "#/components/schemas/CustomerReturn" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/account/support:
+    get:
+      summary: List the signed-in customer's latest support tickets
+      description: Returns at most 50 tickets and 100 visible messages per ticket. Internal notes and identity fields are always omitted.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Customer-safe support history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { const: true }
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/CustomerSupportTicket" }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Open a customer support ticket
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerSupportCreate" }
+      responses:
+        "201":
+          description: Customer-safe created ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { const: true }
+                  data: { $ref: "#/components/schemas/CustomerSupportTicket" }
+  /api/v1/account/support/{id}/replies:
+    post:
+      summary: Add a customer-visible reply and reopen the owned ticket
+      description: Customers cannot set ticket status or create internal notes.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomerSupportReply" }
+      responses:
+        "201":
+          description: Customer-safe updated ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { const: true }
+                  data: { $ref: "#/components/schemas/CustomerSupportTicket" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/cart:
+    get:
+      summary: Read customer or guest cart
+      responses: { "200": { description: Cart } }
+  /api/v1/cart/items:
+    put:
+      summary: Add, update, or remove a cart line
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      required: [variantId, quantity],
+                      properties:
+                        {
+                          variantId: { type: string, format: uuid },
+                          quantity: { type: integer, minimum: 0, maximum: 20 },
+                        },
+                    },
+                },
+            },
+        }
+      responses:
+        {
+          "200": { description: Cart updated },
+          "409": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/checkout/quote:
+    post:
+      summary: Calculate authoritative prices and available delivery services
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/CheckoutQuote" } },
+            },
+        }
+      responses:
+        {
+          "200": { description: Checkout quote calculated },
+          "409": { $ref: "#/components/responses/Error" },
+          "422": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/checkout:
+    post:
+      summary: Price, reserve inventory, and create an order idempotently
+      parameters:
+        [
+          {
+            in: header,
+            name: Idempotency-Key,
+            required: true,
+            schema: { type: string, minLength: 8, maxLength: 100 },
+          },
+        ]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/Checkout" } },
+            },
+        }
+      responses:
+        {
+          "201": { description: Order created },
+          "409": { $ref: "#/components/responses/Error" },
+          "422": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/orders/{number}/track:
+    get:
+      summary: Track an order
+      parameters:
+        [{ in: path, name: number, required: true, schema: { type: string } }]
+      responses:
+        {
+          "200": { description: Tracking history },
+          "404": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/products:
+    get:
+      summary: Search and paginate the complete admin catalog
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: status, schema: { type: string, enum: [ALL, DRAFT, ACTIVE, ARCHIVED], default: ALL } }
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: sortBy, schema: { type: string, enum: [updatedAt, name, inventory], default: updatedAt } }
+        - { in: query, name: sortOrder, schema: { type: string, enum: [asc, desc], default: desc } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated product summaries and catalog facets }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Create product with variants
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ProductWrite" } }
+      responses:
+        {
+          "201": { description: Created },
+          "403": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/products/{id}:
+    get:
+      summary: Read a complete admin product, including inactive variants and inventory
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Admin product detail }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      summary: Replace product content while preserving stable variant and media identities
+      description: Existing variants omitted from the request are deactivated, not deleted. Existing inventory is only changed through the inventory adjustment endpoint.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ProductWrite" } }
+      responses:
+        "200": { description: Product updated }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Archive a product without deleting its variants or order references
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Product archived }
+  /api/v1/admin/products/{id}/media/upload:
+    post:
+      summary: Upload and convert a product image to WebP
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+                alt: { type: string, maxLength: 200 }
+                position: { type: integer, minimum: 0 }
+                variantId: { type: string, format: uuid }
+      responses:
+        "201": { description: Optimized image attached }
+        "415": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/products/{id}/media/order:
+    put:
+      summary: Atomically replace the media display order
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mediaIds]
+              properties:
+                mediaIds:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, format: uuid }
+      responses:
+        "200": { description: Ordered media }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/products/{id}/media/{mediaId}:
+    patch:
+      summary: Update media alt text or variant assignment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: path, name: mediaId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Media updated }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Remove media and compact remaining positions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: path, name: mediaId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Media removed }
+  /api/v1/admin/categories:
+    get:
+      summary: List catalog categories and product counts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+      responses:
+        "200": { description: Category summaries }
+  /api/v1/admin/inventory:
+    get:
+      summary: Search and paginate variant inventory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: productId, schema: { type: string, format: uuid } }
+        - { in: query, name: lowStock, schema: { type: boolean } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated inventory rows }
+  /api/v1/admin/inventory/{variantId}:
+    patch:
+      summary: Idempotently adjust inventory and write an audit movement
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: variantId, required: true, schema: { type: string, format: uuid } }
+        - { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 8, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/InventoryAdjustment" } }
+      responses:
+        "200": { description: Inventory, movement, and replay indicator }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/inventory/{variantId}/movements:
+    get:
+      summary: Read paginated inventory movement history
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: variantId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated inventory movements }
+  /api/v1/admin/orders:
+    get:
+      summary: List sanitized live order-operation records
+      description: Internal idempotency keys, tracking verification hashes, and provider secrets are never returned.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { in: query, name: search, schema: { type: string, maxLength: 120 } }
+        - { in: query, name: status, schema: { type: string } }
+      responses:
+        {
+          "200": { description: Paginated admin order DTOs with global summary counts },
+          "403": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/orders/{id}/status:
+    patch:
+      summary: Apply a validated non-payment order state transition
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/OrderStatusChange" } },
+            },
+        }
+      responses:
+        {
+          "200": { description: Updated },
+          "409": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/orders/{id}/refunds:
+    post:
+      summary: Create a cumulative, idempotent partial or full refund
+      security: [{ bearerAuth: [] }]
+      parameters:
+        [
+          { $ref: "#/components/parameters/Id" },
+          {
+            in: header,
+            name: Idempotency-Key,
+            required: true,
+            schema: { type: string, minLength: 8, maxLength: 100 },
+          },
+        ]
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/RefundRequest" } },
+            },
+        }
+      responses:
+        {
+          "201": { description: Refund processed },
+          "409": { $ref: "#/components/responses/Error" },
+          "422": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/orders/{id}/shipment:
+    post:
+      summary: Idempotently create and persist a shipment for a packed order
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        {
+          "201": { description: Shipment and updated sanitized order DTO },
+          "409": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/customers:
+    get:
+      summary: Search, filter, sort, and paginate customer operations
+      description: Lifetime spend is net of successful refunds and excludes unpaid or fully refunded orders.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: status, schema: { type: string, enum: [ACTIVE, DISABLED] } }
+        - { in: query, name: marketing, schema: { type: string, enum: [SUBSCRIBED, NOT_SUBSCRIBED] } }
+        - { in: query, name: segment, schema: { type: string, enum: [NEW, REPEAT, HIGH_VALUE, AT_RISK] } }
+        - { in: query, name: tag, schema: { type: string, maxLength: 40 } }
+        - { in: query, name: sortBy, schema: { type: string, enum: [createdAt, name, orders, spent, lastOrderAt], default: createdAt } }
+        - { in: query, name: sortOrder, schema: { type: string, enum: [asc, desc], default: desc } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated customer summaries, aggregate totals, and facets }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/customers/{id}:
+    get:
+      summary: Read a customer profile and linked commerce history
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Customer detail, metrics, addresses, orders, reviews, returns, support, and retention semantics }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Update tags, private note, marketing consent, or account status
+      description: Disabling increments the authentication version and revokes every refresh session. Re-enabling does not restore old sessions or tokens.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/AdminCustomerUpdate" } }
+      responses:
+        "200": { description: Enriched customer detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/customer-segments:
+    get:
+      summary: List deterministic new, repeat, high-value, and at-risk segments
+      description: Repeat and at-risk membership uses economically paid orders only.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Segment definitions and authoritative counts }
+  /api/v1/admin/returns:
+    get:
+      summary: Search, filter, and paginate return requests
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: status, schema: { type: string, enum: [REQUESTED, APPROVED, REJECTED, RECEIVED, REFUNDED] } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated enriched returns and status facets }
+  /api/v1/admin/returns/{id}:
+    get:
+      summary: Read an enriched return with order items and refund
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Return detail }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Approve or reject a pending return atomically
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ReturnDecision" } }
+      responses:
+        "200": { description: Enriched return detail }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/v1/admin/reviews:
+    get:
+      summary: Search, filter, and paginate review moderation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: status, schema: { type: string, enum: [PENDING, APPROVED, REJECTED] } }
+        - { in: query, name: rating, schema: { type: integer, minimum: 1, maximum: 5 } }
+        - { in: query, name: verified, schema: { type: boolean } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated enriched reviews and moderation facets }
+  /api/v1/admin/reviews/{id}:
+    get:
+      summary: Read enriched review moderation detail
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Review detail }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Approve or reject a review atomically
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ReviewModeration" } }
+      responses:
+        "200": { description: Enriched review detail }
+  /api/v1/admin/support:
+    get:
+      summary: Search, filter, and paginate support tickets
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: status, schema: { type: string, enum: [OPEN, WAITING_CUSTOMER, RESOLVED, CLOSED] } }
+        - { in: query, name: priority, schema: { type: string, enum: [LOW, NORMAL, HIGH] } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        "200": { description: Paginated support summaries and facets }
+  /api/v1/admin/support/{id}:
+    get:
+      summary: Read support detail including customer-visible replies and admin-only notes
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Support detail }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Update support status or priority
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/SupportUpdate" } }
+      responses:
+        "200": { description: Enriched support detail }
+  /api/v1/admin/support/{id}/replies:
+    post:
+      summary: Send a customer-visible support reply
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/SupportReply" } }
+      responses:
+        "201": { description: Enriched support detail }
+  /api/v1/admin/support/{id}/internal-notes:
+    post:
+      summary: Add an admin-only internal support note
+      description: Internal notes are excluded from every customer-facing support response.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties: { message: { type: string, minLength: 1, maxLength: 5000 } }
+      responses:
+        "201": { description: Enriched support detail }
+  /api/v1/admin/integrations:
+    get:
+      summary: List authoritative masked integration states and capabilities
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - {
+            in: query,
+            name: environment,
+            schema: { type: string, enum: [TEST, LIVE] },
+            description: Defaults to LIVE in production and TEST otherwise,
+          }
+        - {
+            in: query,
+            name: kind,
+            schema:
+              {
+                type: string,
+                enum: [PAYMENT, SHIPPING, EMAIL, SMS, WHATSAPP, STORAGE, ANALYTICS],
+              },
+          }
+      responses:
+        {
+          "200":
+            {
+              description: Every known provider with masked configuration state; encrypted and plaintext secrets are never returned,
+            },
+          "400": { $ref: "#/components/responses/Error" },
+        }
+    put:
+      summary: Save provider configuration while preserving omitted or blank secrets
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntegrationWrite" }
+      responses:
+        {
+          "200": { description: Masked authoritative integration state },
+          "400": { $ref: "#/components/responses/Error" },
+          "409": { $ref: "#/components/responses/Error" },
+          "422": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/integrations/{id}/test:
+    post:
+      summary: Perform a rate-limited non-mutating provider credential probe
+      description: Returns a truthful CONNECTED, FAILED, UNSUPPORTED, or UNCONFIGURED outcome without returning provider response bodies.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, example: "PAYMENT:razorpay:TEST" },
+          }
+      responses:
+        {
+          "200": { description: Masked integration state and test outcome },
+          "404": { $ref: "#/components/responses/Error" },
+          "429": { $ref: "#/components/responses/Error" },
+        }
+  /api/v1/admin/integrations/{id}/disconnect:
+    post:
+      summary: Explicitly disable an integration and irreversibly clear its credentials
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, example: "PAYMENT:razorpay:TEST" },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntegrationDisconnect" }
+      responses:
+        {
+          "200": { description: Disabled, unconfigured masked integration state },
+          "400": { $ref: "#/components/responses/Error" },
+          "404": { $ref: "#/components/responses/Error" },
+        }
+  /webhooks/{provider}:
+    post:
+      summary: Receive signed idempotent provider event
+      parameters:
+        - { in: path, name: provider, required: true, schema: { type: string } }
+        - {
+            in: header,
+            name: X-Event-Id,
+            required: true,
+            schema: { type: string },
+          }
+        - {
+            in: header,
+            name: X-Webhook-Signature,
+            required: true,
+            schema: { type: string },
+          }
+      responses:
+        {
+          "202": { description: Accepted },
+          "401": { $ref: "#/components/responses/Error" },
+        }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      {
+        in: path,
+        name: id,
+        required: true,
+        schema: { type: string, format: uuid },
+      }
+  schemas:
+    GoogleCredential:
+      type: object
+      additionalProperties: false
+      required: [credential]
+      properties:
+        credential: { type: string, minLength: 100, maxLength: 10000, description: Firebase ID token from a verified Google sign-in; raw Google OAuth tokens are not accepted }
+    ProductWrite:
+      type: object
+      required: [name, slug, description, category, status, taxRate, variants]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        description: { type: string, minLength: 10, maxLength: 20000 }
+        category: { type: string, minLength: 2, maxLength: 100 }
+        brand: { type: string, maxLength: 100 }
+        status: { type: string, enum: [DRAFT, ACTIVE, ARCHIVED] }
+        taxRate: { type: number, minimum: 0, maximum: 100 }
+        hsnCode: { type: string, pattern: "^[0-9]{4,8}$" }
+        specifications: { type: object, additionalProperties: { type: string } }
+        seoTitle: { type: string, maxLength: 70 }
+        seoDescription: { type: string, maxLength: 170 }
+        media:
+          type: array
+          maxItems: 30
+          items:
+            type: object
+            required: [url, alt, type, position]
+            properties:
+              id: { type: string, format: uuid, description: Preserve this value when updating existing media. }
+              url: { type: string, format: uri }
+              alt: { type: string, maxLength: 200 }
+              type: { type: string, enum: [IMAGE, VIDEO] }
+              position: { type: integer, minimum: 0 }
+              variantId: { type: string, format: uuid }
+        variants:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            required: [sku, title, price, mrp, stock, attributes, weightGrams]
+            properties:
+              id: { type: string, format: uuid, description: Preserve this value for an existing variant; omit it for a new variant. }
+              sku: { type: string, minLength: 3, maxLength: 80 }
+              title: { type: string, minLength: 1, maxLength: 120 }
+              active: { type: boolean, default: true }
+              price: { type: number, exclusiveMinimum: 0 }
+              mrp: { type: number, exclusiveMinimum: 0 }
+              stock: { type: integer, minimum: 0, description: Initial stock for new variants; ignored for existing variants. }
+              attributes: { type: object, additionalProperties: { type: string } }
+              weightGrams: { type: integer, minimum: 1 }
+    IntegrationWrite:
+      type: object
+      required: [kind, provider, enabled, priority, environment]
+      properties:
+        kind:
+          type: string
+          enum: [PAYMENT, SHIPPING, EMAIL, SMS, WHATSAPP, STORAGE, ANALYTICS]
+        provider:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: Normalized by the server to a stable lowercase slug.
+        enabled: { type: boolean }
+        priority: { type: integer, minimum: 1, maximum: 1000 }
+        environment: { type: string, enum: [TEST, LIVE] }
+        credentials:
+          type: object
+          maxProperties: 20
+          additionalProperties: { type: string, maxLength: 2000 }
+          description: Only provider-declared keys are accepted. Omitted and blank known values preserve stored encrypted secrets.
+        publicConfig:
+          type: object
+          maxProperties: 50
+          additionalProperties: true
+          description: Provider-specific non-secret configuration. A blank optional text field clears it.
+    IntegrationDisconnect:
+      type: object
+      required: [confirmation]
+      properties:
+        confirmation: { type: string, const: DISCONNECT }
+    InventoryAdjustment:
+      type: object
+      required: [quantity, reason]
+      properties:
+        quantity: { type: integer, minimum: -1000000, maximum: 1000000, not: { const: 0 } }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    Checkout:
+      type: object
+      required: [lines, postalCode, contact, shippingAddress, paymentProvider]
+      properties:
+        lines:
+          {
+            type: array,
+            minItems: 1,
+            maxItems: 100,
+            items:
+              {
+                type: object,
+                required: [variantId, quantity],
+                properties:
+                  {
+                    variantId: { type: string, format: uuid },
+                    quantity: { type: integer, minimum: 1, maximum: 20 },
+                  },
+              },
+          }
+        postalCode: { type: string, pattern: "^[0-9]{6}$" }
+        contact:
+          type: object
+          required: [name, email, phone]
+          properties:
+            name: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+        shippingAddress:
+          type: object
+          required: [line1, city, state]
+          properties:
+            line1: { type: string }
+            line2: { type: string }
+            city: { type: string }
+            state: { type: string }
+            country: { type: string, default: IN }
+        couponCode: { type: string }
+        paymentProvider: { type: string }
+        shippingService: { type: string, description: Service returned by the checkout quote }
+    CheckoutQuote:
+      type: object
+      required: [lines, postalCode, paymentProvider]
+      properties:
+        lines:
+          {
+            type: array,
+            minItems: 1,
+            maxItems: 100,
+            items:
+              {
+                type: object,
+                required: [variantId, quantity],
+                properties:
+                  {
+                    variantId: { type: string, format: uuid },
+                    quantity: { type: integer, minimum: 1, maximum: 20 },
+                  },
+              },
+          }
+        postalCode: { type: string, pattern: "^[0-9]{6}$" }
+        couponCode: { type: string }
+        paymentProvider: { type: string }
+        shippingService: { type: string, description: Optional delivery service to price }
+    OrderStatusChange:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Payment-authoritative states such as PAID and REFUNDED are rejected here.
+    RefundRequest:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount:
+          { type: number, exclusiveMinimum: 0, multipleOf: 0.01 }
+        reason: { type: string, minLength: 3, maxLength: 500 }
+        returnRequestId:
+          type: string
+          format: uuid
+          description: Optional received return to associate with this refund. It becomes part of idempotency equivalence.
+    CustomerReturnCreate:
+      type: object
+      additionalProperties: false
+      required: [orderId, reason]
+      properties:
+        orderId: { type: string, format: uuid }
+        reason: { type: string, minLength: 5, maxLength: 1000 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [variantId, quantity]
+            properties:
+              variantId: { type: string, format: uuid }
+              quantity: { type: integer, minimum: 1, maximum: 1000 }
+    CustomerReturnItem:
+      type: object
+      required: [id, variantId, name, sku, quantity, condition]
+      properties:
+        id: { type: string, format: uuid }
+        variantId: { type: string, format: uuid }
+        name: { type: string }
+        sku: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        condition: { type: [string, "null"] }
+    CustomerReturn:
+      type: object
+      required: [id, orderId, reason, notes, status, createdAt, updatedAt, items]
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        reason: { type: string }
+        notes: { type: [string, "null"] }
+        status: { type: string, enum: [REQUESTED, APPROVED, REJECTED, RECEIVED, REFUNDED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerReturnItem" }
+    CustomerSupportCreate:
+      type: object
+      additionalProperties: false
+      required: [subject, message, priority]
+      properties:
+        subject: { type: string, minLength: 3, maxLength: 200 }
+        message: { type: string, minLength: 5, maxLength: 5000 }
+        priority: { type: string, enum: [LOW, NORMAL, HIGH] }
+    CustomerSupportReply:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 5000 }
+    CustomerSupportMessage:
+      type: object
+      additionalProperties: false
+      required: [id, body, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+    CustomerSupportTicket:
+      type: object
+      additionalProperties: false
+      required: [id, number, subject, priority, status, createdAt, updatedAt, messages]
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: string }
+        subject: { type: string }
+        priority: { type: string, enum: [LOW, NORMAL, HIGH] }
+        status: { type: string, enum: [OPEN, WAITING_CUSTOMER, RESOLVED, CLOSED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/CustomerSupportMessage" }
+    AdminCustomerUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        tags:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 40 }
+        note: { type: [string, "null"], maxLength: 2000 }
+        marketingConsent: { type: boolean }
+        accountStatus: { type: string, enum: [ACTIVE, DISABLED] }
+    ReturnDecision:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [APPROVED, REJECTED, RECEIVED] }
+        notes: { type: string, maxLength: 1000 }
+    ReviewModeration:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [APPROVED, REJECTED] }
+    SupportReply:
+      type: object
+      required: [message]
+      additionalProperties: false
+      properties:
+        message: { type: string, minLength: 1, maxLength: 5000 }
+        status: { type: string, enum: [OPEN, WAITING_CUSTOMER, RESOLVED, CLOSED] }
+    SupportUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [OPEN, WAITING_CUSTOMER, RESOLVED, CLOSED] }
+        priority: { type: string, enum: [LOW, NORMAL, HIGH] }
+  responses:
+    Error:
+      description: Standard error envelope
+      content:
+        {
+          application/json:
+            {
+              schema:
+                {
+                  type: object,
+                  properties:
+                    {
+                      success: { const: false },
+                      error:
+                        {
+                          type: object,
+                          properties:
+                            {
+                              code: { type: string },
+                              message: { type: string },
+                            },
+                        },
+                    },
+                },
+            },
+        }

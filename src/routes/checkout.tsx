@@ -1,0 +1,1 @@
+import {createFileRoute} from "@tanstack/react-router";import {CheckoutPage} from "@/components/store/CommerceFlowPages";export const Route=createFileRoute("/checkout")({component:CheckoutPage,head:()=>({meta:[{title:"Checkout | Sri Varahi Traders"},{name:"robots",content:"noindex, nofollow"}]})});

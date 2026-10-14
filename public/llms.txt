@@ -1,0 +1,7 @@
+# Sri Varahi Traders
+
+A cold-pressed oils storefront. Client preview with sample products and illustrative prices.
+
+Public pages: /, /shop, /contact, /shipping-returns, /privacy, /terms.
+
+Business contact information and the live domain are awaiting client configuration.

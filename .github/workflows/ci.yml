@@ -1,0 +1,75 @@
+name: Sri Varahi Traders CI
+
+on:
+  push:
+    branches: [main, "codex/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commerce-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.database }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        database: ["mysql:8.4", "mariadb:11.4"]
+    services:
+      mysql:
+        image: ${{ matrix.database }}
+        env:
+          MYSQL_USER: commerce
+          MYSQL_PASSWORD: commerce_test
+          MYSQL_DATABASE: commerce
+          MYSQL_ROOT_PASSWORD: root_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -proot_test --silent || mariadb-admin ping -h localhost -proot_test --silent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: mysql://commerce:commerce_test@localhost:3306/commerce
+      RUN_DB_TESTS: "1"
+      NODE_ENV: test
+      JWT_SECRET: ci-access-secret-that-is-at-least-32-characters
+      JWT_REFRESH_SECRET: ci-refresh-secret-that-is-at-least-32-characters
+      INTEGRATION_ENCRYPTION_KEY: ci-encryption-key-that-is-at-least-32-characters
+      CORS_ORIGINS: http://localhost:5180
+      USE_DATABASE: "true"
+      PUBLIC_UPLOAD_BASE_URL: http://localhost:4010/uploads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir commerce-api install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level=high
+      - run: pnpm --dir commerce-api audit --prod --audit-level=high
+      - run: pnpm --dir commerce-api exec prisma migrate deploy
+      - run: pnpm --dir commerce-api seed
+      - run: pnpm lint
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm build:api
+      - run: pnpm test:api
+      - run: pnpm build:hostinger
+      - run: node scripts/check-public-secrets.mjs
+      - run: node scripts/smoke-built-storefront.mjs
+      - run: node scripts/smoke-hostinger-startup.mjs
+

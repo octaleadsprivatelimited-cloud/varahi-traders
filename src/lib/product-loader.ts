@@ -1,0 +1,23 @@
+import { products as legacyProducts } from '@/data/commerce';
+import { createServerFn } from '@tanstack/react-start';
+import { mapProduct } from './store-products';
+import { readPublicCatalog, readPublicProduct } from './public-catalog-reader';
+
+export const loadProduct = createServerFn({ method: 'GET' })
+  .inputValidator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const product = await readPublicProduct(id);
+    if (!product) {
+      const legacy = legacyProducts.find(product => product.id === id);
+      if (!legacy) return null;
+      const catalog = await readPublicCatalog();
+      const product = catalog.find(product => product.name === legacy.name && product.category === legacy.category);
+      return product ? mapProduct(product, 0) : null;
+    }
+    return mapProduct(product, 0);
+  });
+
+/** Read the real catalog during SSR; an empty store must not index demo products. */
+export const loadCatalog = createServerFn({ method: 'GET' }).handler(async () => {
+  return (await readPublicCatalog()).map(mapProduct);
+});

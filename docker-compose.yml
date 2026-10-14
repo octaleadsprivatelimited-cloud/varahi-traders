@@ -1,0 +1,46 @@
+name: sri-varahi-traders
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_USER: ${MYSQL_USER:-varahi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sri_varahi_traders}
+    ports:
+      - "127.0.0.1:3310:3306"
+    volumes:
+      - varahi_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6390:6379"
+    volumes:
+      - varahi_redis:/data
+    restart: unless-stopped
+
+  api:
+    build: ./commerce-api
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-varahi}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-sri_varahi_traders}
+      PORT: 4010
+      PUBLIC_UPLOAD_BASE_URL: http://localhost:4010/uploads
+    ports:
+      - "127.0.0.1:4010:4010"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  varahi_mysql:
+  varahi_redis:

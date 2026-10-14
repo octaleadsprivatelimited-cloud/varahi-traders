@@ -1,0 +1,1 @@
+ALTER TABLE "Refund" ADD COLUMN "reason" TEXT;
