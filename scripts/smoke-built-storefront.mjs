@@ -54,7 +54,7 @@ try {
   const afterHero = home.body.slice(heroEnd + '</section>'.length).match(/<section\b([^>]*)>/)?.[1];
   assert.ok(afterHero?.includes('id="new"'), 'home favourites must immediately follow the hero');
   assert.ok(!home.body.includes('Sri Varahi Traders favourites') && !home.body.includes('Pure, aromatic and full of flavour.'), 'removed product headings must not remain in rendered markup');
-  assert.ok(home.body.includes('story story-compact'), 'render the compact spice promise');
+  assert.ok(home.body.includes('story story-compact'), 'render the compact oil collection');
   assert.ok(home.body.includes('₹62 delivery') && home.body.includes('₹800'), 'SSR must use saved delivery prices before hydration');
   storefrontSettings = { ...storefrontSettings, deliveryCharge: 89, freeShippingThreshold: 799 };
   const updatedShop = await request('/shop');
@@ -67,24 +67,24 @@ try {
   assert.equal(unknown.status, 404);
   assert.ok(unknown.body.includes('Explore the shop'));
   assert.ok(unknown.body.includes('Page not found | Sri Varahi Traders'));
-  const transaction = await request('/transaction/FW-smoke');
+  const transaction = await request('/transaction/SVT-smoke');
   assert.equal(transaction.status, 200);
   assert.ok(transaction.body.includes('noindex, nofollow'));
   assert.equal(transaction.headers['x-robots-tag'], 'noindex, nofollow');
   assert.equal(transaction.headers['cache-control'], 'private, no-store');
   catalog = [{
-    id: 'smoke-pepper', name: 'Smoke test pepper', category: 'Cooking oils', description: 'A local smoke-test fixture only.', status: 'ACTIVE', taxRate: 5,
-    media: [{ type: 'IMAGE', url: '/uploads/pepper.jpg', alt: 'Pepper', position: 0 }],
+    id: 'smoke-groundnut-oil', name: 'Smoke test groundnut oil', category: 'Cooking oils', description: 'A local smoke-test fixture only.', status: 'ACTIVE', taxRate: 5,
+    media: [{ type: 'IMAGE', url: '/uploads/groundnut-oil.jpg', alt: 'Groundnut oil', position: 0 }],
     variants: [
-      { id: 'pepper-100', sku: 'P100', title: '100 g', price: 129, mrp: 149, stock: 5, reserved: 0, attributes: { Weight: '100 g' } },
-      { id: 'pepper-250', sku: 'P250', title: '250 g', price: 279.5, mrp: 299, stock: 3, reserved: 0, attributes: { Weight: '250 g' } },
+      { id: 'oil-500', sku: 'SVT500', title: '500 ml', price: 129, mrp: 149, stock: 5, reserved: 0, attributes: { Volume: '500 ml' } },
+      { id: 'oil-1000', sku: 'SVT1000', title: '1 L', price: 279.5, mrp: 299, stock: 3, reserved: 0, attributes: { Volume: '1 L' } },
     ],
   }];
-  const product = await request('/product/smoke-pepper?variant=pepper-250');
+  const product = await request('/product/smoke-groundnut-oil?variant=oil-1000');
   assert.equal(product.status, 200);
   assert.match(product.body, /detail-price[^>]*>₹293\.48/);
   assert.ok(product.body.includes('"price":"293.48"'));
-  assert.ok(product.body.includes('variant=pepper-250'));
+  assert.ok(product.body.includes('variant=oil-1000'));
   console.log(`Built SSR smoke passed: ${pages.length} storefront/account/admin pages render with security headers and distinct bootstrap nonces; real 404s, private transaction caching and variant prices verified.`);
 } finally {
   delete globalThis[readerKey];

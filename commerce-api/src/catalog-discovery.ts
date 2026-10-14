@@ -97,8 +97,8 @@ export function buildMerchantFeed(products: Iterable<StoredProduct>, origin: str
       for (const message of warnings) report.issues.push({ productId: product.id, variantId: variant.id, severity: "warning", message });
       if (errors.length) { report.excludedItems += 1; continue; }
       const tag = (name: string, value: unknown) => `<g:${name}>${escapeXml(value)}</g:${name}>`;
-      const weight = Object.entries(variant.attributes).find(([key]) => /^(weight|net weight|size)$/i.test(key))?.[1]?.trim();
-      const measure = weight?.match(/^(\d+(?:\.\d+)?)\s*(g|kg)$/i);
+      const quantity = Object.entries(variant.attributes).find(([key]) => /^(volume|net volume|weight|net weight|size)$/i.test(key))?.[1]?.trim();
+      const measure = quantity?.match(/^(\d+(?:\.\d+)?)\s*(ml|l|g|kg)$/i);
       const additionalImages = product.media.filter((media) => media.type === "IMAGE" && (!media.variantId || media.variantId === variant.id)).map((media) => publicHttpUrl(media.url, origin)).filter((url): url is string => Boolean(url && url !== image)).slice(0, 10);
       items.push(`<item>${tag("id", variant.id)}${tag("title", title)}${tag("description", description.slice(0, 5000))}${tag("link", link)}${tag("image_link", image)}${additionalImages.map((url) => tag("additional_image_link", url)).join("")}${tag("availability", variant.stock - variant.reserved > 0 ? "in_stock" : "out_of_stock")}${tag("price", `${price.toFixed(2)} INR`)}${tag("condition", "new")}${brand ? tag("brand", brand) : ""}${gtin ? tag("gtin", gtin) : ""}${mpn ? tag("mpn", mpn) : ""}${explicitlyNoIdentifiers ? tag("identifier_exists", "no") : ""}${tag("item_group_id", product.id)}${tag("product_type", product.category)}${measure ? tag("unit_pricing_measure", `${measure[1]}${measure[2]!.toLowerCase()}`) : ""}</item>`);
       report.eligibleItems += 1;

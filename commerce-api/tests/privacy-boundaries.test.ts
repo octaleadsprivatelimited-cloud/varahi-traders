@@ -86,7 +86,7 @@ it("does not let one customer read another customer's orders, payments, address,
 it("keeps contact details out of tracking URLs and exposes only minimal verified tracking data", async () => {
   expect((await call(`/api/v1/orders/${order.number}/track?contact=private-owner@example.com`)).status).toBe(410);
   const denied = await call("/api/v1/orders/track", undefined, "POST", { orderNumber: order.number, contact: "wrong@example.com" });
-  const missing = await call("/api/v1/orders/track", undefined, "POST", { orderNumber: "FW-missing", contact: owner.email });
+  const missing = await call("/api/v1/orders/track", undefined, "POST", { orderNumber: "SVT-missing", contact: owner.email });
   expect(denied.status).toBe(404); expect(missing.text).toBe(denied.text);
   for (const contact of [owner.email.toUpperCase(), "9876543210", "+91 9876543210"]) {
     const response = await call("/api/v1/orders/track", undefined, "POST", { orderNumber: order.number, contact });

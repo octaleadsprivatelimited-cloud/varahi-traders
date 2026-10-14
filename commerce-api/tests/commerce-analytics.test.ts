@@ -6,18 +6,18 @@ const { products: previewProducts } = await import(catalogSource);
 const { analyticsItemsForCart, analyticsItemsForProducts, analyticsPurchase, commerceAmount, discountedCommerceItems, productAnalyticsItem, purchaseIsConfirmed } = await import(analyticsSource);
 
 const product = {
-  id: "spice-turmeric", name: "Turmeric Powder", category: "Sesame Oils",
+  id: "sesame-oil", name: "Sesame Oil", category: "Sesame Oils",
   price: 129, mrp: 149, rating: 0, reviews: 0, glyph: "", tone: "",
   variants: [
-    { id: "turmeric-100g", sku: "T100", title: "100 g", options: { Weight: "100 g" }, price: 129, mrp: 149, stock: 3 },
-    { id: "turmeric-250g", sku: "T250", title: "250 g", options: { Weight: "250 g" }, price: 279, mrp: 319, stock: 2 },
+    { id: "sesame-500ml", sku: "T100", title: "500 ml", options: { Volume: "500 ml" }, price: 129, mrp: 149, stock: 3 },
+    { id: "sesame-1l", sku: "T250", title: "1 L", options: { Volume: "1 L" }, price: 279, mrp: 319, stock: 2 },
   ],
 };
 
 describe("merchandise analytics values", () => {
   it("uses the selected Merchant variant ID and rupees, preserving actual accepted quantity", () => {
     expect(productAnalyticsItem(product, product.variants![1], 2)).toEqual({
-      item_id: "turmeric-250g", item_name: "Turmeric Powder", item_category: "Sesame Oils", item_variant: "250 g", price: 279, quantity: 2,
+      item_id: "sesame-1l", item_name: "Sesame Oil", item_category: "Sesame Oils", item_variant: "1 L", price: 279, quantity: 2,
     });
   });
 
@@ -32,10 +32,10 @@ describe("merchandise analytics values", () => {
 
   it("allocates an order coupon to merchandise and keeps GST/shipping separate", () => {
     const result = analyticsPurchase({
-      number: "RS-123", status: "CONFIRMED", subtotal: 537, discount: 53.7, tax: 26.85, shipping: 49, total: 559.15,
+      number: "SVT-123", status: "CONFIRMED", subtotal: 537, discount: 53.7, tax: 26.85, shipping: 49, total: 559.15,
       lines: [
-        { variantId: "turmeric-100g", name: "Turmeric Powder", unitPrice: 129, quantity: 2 },
-        { variantId: "turmeric-250g", name: "Turmeric Powder", unitPrice: 279, quantity: 1 },
+        { variantId: "sesame-500ml", name: "Sesame Oil", unitPrice: 129, quantity: 2 },
+        { variantId: "sesame-1l", name: "Sesame Oil", unitPrice: 279, quantity: 1 },
       ],
     });
     expect(result.value).toBe(483.3);
@@ -47,15 +47,15 @@ describe("merchandise analytics values", () => {
 
   it("never sends private invoice, customer or payment fields even when the server response includes them", () => {
     const response = {
-      number: "RS-456", status: "CONFIRMED", subtotal: 129, discount: 0, tax: 6.45, shipping: 49, total: 184.45,
-      lines: [{ variantId: "turmeric-100g", name: "Turmeric Powder", unitPrice: 129, quantity: 1 }],
+      number: "SVT-456", status: "CONFIRMED", subtotal: 129, discount: 0, tax: 6.45, shipping: 49, total: 184.45,
+      lines: [{ variantId: "sesame-500ml", name: "Sesame Oil", unitPrice: 129, quantity: 1 }],
       userId: "private-customer", invoiceSnapshot: { contact: { email: "buyer@example.com", phone: "+919876543210" }, shipping: { line1: "Private address" } },
       paymentAttemptToken: "private-token", trackingVerificationHash: "private-hash",
     };
     const serialized = JSON.stringify(analyticsPurchase(response));
     for (const forbidden of ["private", "buyer@example.com", "9876543210", "invoice", "contact", "shippingAddress", "paymentAttemptToken"])
       expect(serialized).not.toContain(forbidden);
-    expect(analyticsPurchase(response).transaction_id).toBe("RS-456");
+    expect(analyticsPurchase(response).transaction_id).toBe("SVT-456");
   });
 
   it("handles full discounts and fractional allocation without negative revenue", () => {

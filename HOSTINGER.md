@@ -1,54 +1,44 @@
-# Hostinger deployment
+# Sri Varahi Traders Node.js deployment
 
-Deploy the repository as a Node.js web app using GitHub, with Node 24 and the repository root as the app directory.
+Connect the [Varahi repository](https://github.com/octaleadsprivatelimited-cloud/varahi-traders), select the tested `codex/sri-varahi-traders` commit, and configure a Node.js 24 app with the repository root as its app directory.
 
-- Install: `pnpm install --frozen-lockfile`
-- Build: `pnpm build:hostinger`
-- Entry point: `hostinger.mjs`
-- Start: `pnpm start`
-- Output directory: `.` (the entry point needs both `.output/` and `commerce-api/`)
+| Setting | Value |
+| --- | --- |
+| Install | `pnpm install --frozen-lockfile` |
+| Build | `pnpm build:hostinger` |
+| Entry point | `hostinger.mjs` |
+| Start | `pnpm start` |
+| Output directory | `.` |
 
-The single process serves the React storefront and Express API on Hostinger's `PORT`. Do not set `VITE_COMMERCE_API_URL`: production browser requests use the same domain. The app requires a Hostinger MySQL database; Redis is optional and is not used for authentication or inventory correctness.
+The process serves React and Express on the hosting platform's `PORT`. It needs both `.output/` and `commerce-api/`. Browser API requests use the same domain; leave `VITE_COMMERCE_API_URL` empty. MySQL is required. Redis is optional and is not used for authentication or inventory correctness.
 
-## Environment
+## Hosting environment
 
-Set these in Hostinger's environment settings, never in GitHub source:
+Use `.env.production.example` as the template. Enter live values in hosting settings, never in GitHub source:
 
-```
-NODE_ENV=production
-USE_DATABASE=true
-APP_URL=https://YOUR-TEMPORARY-DOMAIN
-DATABASE_URL=mysql://USER:URL_ENCODED_PASSWORD@HOST:3306/DATABASE
-JWT_SECRET=<unique random value of at least 32 characters>
-JWT_REFRESH_SECRET=<different random value of at least 32 characters>
-INTEGRATION_ENCRYPTION_KEY=<different random value of at least 32 characters>
-TRUST_PROXY=1
-```
+- `NODE_ENV=production`, `USE_DATABASE=true`, and `APP_URL=https://<Varahi-domain>`.
+- All four `DATABASE_HOST`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`; `DATABASE_PORT` defaults to 3306. Enter the password unchanged in its dedicated field. These fields take precedence over `DATABASE_URL` and must be supplied together.
+- Alternatively use `DATABASE_URL=mysql://USER:URL_ENCODED_PASSWORD@HOST:3306/DATABASE` and omit all four discrete fields.
+- Unique random `JWT_SECRET` and `JWT_REFRESH_SECRET`, at least 32 characters each, and a separate random `INTEGRATION_ENCRYPTION_KEY`. Keep the encryption key stable across releases so saved provider credentials remain readable.
+- `CORS_ORIGINS` must list explicit HTTPS storefront origins. It defaults to `APP_URL`. `PUBLIC_UPLOAD_BASE_URL` defaults to `APP_URL/uploads`.
+- Configure `TRUST_PROXY` only for the actual hosting proxy chain. Trusted proxies must replace forwarded headers and direct access to the API must be restricted accordingly.
 
-`CORS_ORIGINS` and `PUBLIC_UPLOAD_BASE_URL` default to APP_URL and APP_URL/uploads. Override only if needed. Do not copy development environment values or deploy development/demo accounts. Keep the encryption key stable across deployments so saved integration credentials remain readable.
+Uploads must remain writable and persistent across deployments. The default production location is `~/.local/share/sri-varahi-traders/<domain>/uploads`, outside the checkout. Supply `UPLOAD_DIR` if hosting requires a different durable directory; back it up with the database.
 
-The Hostinger entry point runs `prisma migrate deploy` before accepting requests. It applies committed migrations only; it never resets the database or uses development migrations. Keep backups before releases. Authentication failures stop startup with a sanitized error code.
+The entry point opens its port promptly, then applies committed MySQL migrations before serving customer requests. `/health` and `/ready` return uncached `503 SERVICE_STARTING` until initialization finishes. Customer requests wait briefly during startup. Migration failures stop startup with sanitized diagnostics; the process never resets the database or falls back to memory storage.
 
-Alternatively, replace DATABASE_URL with all four `DATABASE_HOST`, `DATABASE_USER`, `DATABASE_PASSWORD`, and `DATABASE_NAME` fields (`DATABASE_PORT` defaults to 3306). Enter the password unchanged in the dedicated password field; the server URL-encodes it. All four fields must be supplied together and take precedence over DATABASE_URL. Use the database hostname shown by Hostinger for this hosting plan.
+For a new empty database, optionally set `SEED_CATALOG=true` once, then remove it. It initializes the sample catalog and role permissions only when no products or orders exist. Replace sample products with approved Varahi products before launch.
 
-For a new empty database, set `SEED_CATALOG=true` for its first start. This creates the initial products, coupon and role permissions only when there are no products or orders. Remove this flag after initialization. The only administrator is `admin@srivarahi.example`, granted ADMIN access only after verified Google sign-in. All other identities are customers. No manual role bootstrap or authenticator code is needed. The role-policy migration revokes existing sessions, clears obsolete role assignments and authenticator enrollment, and requires everyone to sign in again.
+## Authentication and providers
 
-## SEO and integrations
+Firebase defaults are empty. Supply Varahi's `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN` and `FIREBASE_APP_ID` together. Enable Google in Firebase and authorize the storefront hostname. Set `STORE_ADMIN_EMAIL` to Varahi's verified admin Google account. `/api/v1/auth/providers` reports the public configuration and enabled state. Sign-in remains disabled until configured; no local login bypass exists.
 
-`/sitemap.xml` uses APP_URL and active catalog products. `/robots.txt` points at that sitemap and excludes private/customer/admin flows. HTML includes canonical URLs, private-page noindex metadata, and product titles, descriptions, and JSON-LD. Set APP_URL to the new origin when moving to a custom domain.
+After verified admin sign-in, configure Cashfree and signed webhooks for online payments, delivery settings/shipping providers, and Resend for order emails through Admin → Integrations. Production checkout retains its readiness requirements. Set accurate business identity and support details before accepting orders. Analytics are optional and require provider IDs and customer consent.
 
-Customers and the sole administrator sign in only with Google through Firebase; no authenticator code is required. Email/password and mobile SMS OTP are disabled. Enable Google in Firebase Console and add the temporary Hostinger hostname under Authentication → Settings → Authorized domains. Add custom storefront hostnames there before switching domains.
+The production notification worker sends persisted order confirmations after an accepted COD order or verified online payment. Missing email configuration defers delivery. Verify real delivery in the email provider; a queued notification is not evidence that a message arrived.
 
-`commerce-api/src/firebase-web-config.ts` contains the Sri Varahi Traders public web identifiers. These are intended for the browser, unlike JWT and integration secrets. To override the project, supply the complete set `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, and `FIREBASE_APP_ID`. Any one explicit Firebase field disables all default fields, so partial overrides fail closed. The backend returns the active public settings from `/api/v1/auth/providers`. It verifies Firebase ID tokens with the Admin SDK and requires Google as the sign-in provider. This token-verification flow does not require a service-account private key or OAuth client secret.
+## Release checks
 
-Admin → Integrations → Authentication displays read-only deployment status. Legacy saved Google client-ID records are ignored; manage Firebase authentication in its console and the hosting configuration. Cashfree credentials remain editable in Admin → Integrations. Until Cashfree credentials are configured, online checkout is unavailable and COD remains available. Configure Cashfree signed webhooks before enabling online payments.
+Run `pnpm verify` and the isolated database tests before selecting the release commit. GitHub Actions tests both MySQL 8.4 and MariaDB 11.4, dependency advisories, lint, types, production builds and compiled smoke checks. It performs no automatic branch promotion or hosting deployment.
 
-## Order confirmation email
-
-In **Admin → Integrations → Communication → Resend**, configure an API key and a sender email on a verified Resend domain, then enable the **Live** integration. Set the legal business name, postal address, support contacts and optional GSTIN under **Store identity & branding** before accepting orders. Those details are saved with each order's confirmation; later settings changes do not rewrite an already queued message.
-
-The production Hostinger process starts the email worker automatically. It sends one confirmation for each accepted COD order or verified online payment, with items, customer and delivery details, charges and business information. Pending/failed payments do not send confirmations. The worker processes only `order.confirmed` email messages; it does not send historical SMS or unrelated queued notifications. Missing credentials or an unverified sender leave messages queued for retry. Verify delivery using a controlled order after configuring Resend; code deployment alone does not establish email delivery.
-
-## Deployment checks
-
-Check `/ready` reports `mysql` and `/api/v1/auth/providers` reports Firebase enabled for the intended project, then `/`, `/shop`, an active `/product/<id>`, `/login`, `/robots.txt`, `/sitemap.xml`, and a missing product (404). Confirm CSS/JS return 200, phone entry enforces ten digits with +91, and no frontend request points to localhost. Check browser console and Hostinger runtime logs. Verify real Google/Cashfree flows only after configuring their provider accounts.
+After deployment, verify `/ready`, the home/shop/product pages, Google sign-in, cart/checkout, uploads, `/sitemap.xml`, `/robots.txt` and `/merchant-feed.xml`. Confirm the hosting deployment reports the intended Git commit. Keep database/uploads backups and preserve compatible schema migrations when rolling back application code.

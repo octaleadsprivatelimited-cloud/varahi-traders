@@ -361,7 +361,7 @@ export class CommerceStore {
     const result = {
       ...order,
       id: crypto.randomUUID(),
-      number: `FW-${String(this.orders.size + 10850)}`,
+      number: `SVT-${String(this.orders.size + 10850)}`,
       createdAt,
       history: [{ to: order.status, at: createdAt }],
     };

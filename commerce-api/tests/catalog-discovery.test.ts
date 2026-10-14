@@ -4,12 +4,12 @@ import type { StoredProduct } from "../src/store.js";
 
 const origin = "https://srivarahitraders.example";
 const product = (overrides: Partial<StoredProduct> = {}): StoredProduct => ({
-  id: "p-1", name: "Cumin & Coriander", slug: "cumin-coriander", description: "Ground cumin & coriander for cooking.", category: "Spice powders", brand: "Sri Varahi Traders", status: "ACTIVE", taxRate: 5,
+  id: "p-1", name: "Groundnut & Sesame Oils", slug: "groundnut-sesame-oils", description: "Groundnut & sesame oils for cooking.", category: "Cooking Oils", brand: "Sri Varahi Traders", status: "ACTIVE", taxRate: 5,
   specifications: { "Identifier exists": "no" },
-  media: [{ id: "image-1", type: "IMAGE", url: "/uploads/cumin.jpg", alt: "Cumin spice pack", position: 0 }],
+  media: [{ id: "image-1", type: "IMAGE", url: "/uploads/groundnut-oil.jpg", alt: "Groundnut oil bottle", position: 0 }],
   variants: [
-    { id: "v-100", sku: "CUMIN-100", title: "100 g", active: true, price: 129, mrp: 149, stock: 4, reserved: 1, attributes: { Weight: "100 g" }, weightGrams: 100 },
-    { id: "v-250", sku: "CUMIN-250", title: "250 g", active: true, price: 279.5, mrp: 299, stock: 1, reserved: 1, attributes: { Weight: "250 g" }, weightGrams: 250 },
+    { id: "v-100", sku: "SVT-OIL-100", title: "500 ml", active: true, price: 129, mrp: 149, stock: 4, reserved: 1, attributes: { Volume: "500 ml" }, weightGrams: 100 },
+    { id: "v-250", sku: "SVT-OIL-250", title: "1 L", active: true, price: 279.5, mrp: 299, stock: 1, reserved: 1, attributes: { Volume: "1 L" }, weightGrams: 250 },
   ],
   createdAt: "2026-09-01T00:00:00.000Z", updatedAt: "2026-09-29T00:00:00.000Z", ...overrides,
 });
@@ -19,12 +19,13 @@ describe("Merchant feed", () => {
     const { xml, report } = buildMerchantFeed([product()], origin);
     expect(report).toMatchObject({ activeProducts: 1, eligibleItems: 2, excludedItems: 0, issues: [] });
     expect(xml).toContain("<g:id>v-100</g:id>");
-    expect(xml).toContain("/product/cumin-coriander?variant=v-100");
+    expect(xml).toContain("/product/groundnut-sesame-oils?variant=v-100");
     expect(xml).toContain("<g:price>135.45 INR</g:price>");
     expect(xml).toContain("<g:price>293.48 INR</g:price>");
     expect(xml).toContain("<g:availability>out_of_stock</g:availability>");
-    expect(xml).toContain("Cumin &amp; Coriander");
-    expect(xml).toContain("<g:unit_pricing_measure>100g</g:unit_pricing_measure>");
+    expect(xml).toContain("Groundnut &amp; Sesame Oils");
+    expect(xml).toContain("<g:unit_pricing_measure>500ml</g:unit_pricing_measure>");
+    expect(xml).toContain("<g:unit_pricing_measure>1l</g:unit_pricing_measure>");
     expect(xml).not.toContain("gtin");
     expect(xml).not.toContain("<g:mpn>");
   });
@@ -65,8 +66,8 @@ describe("Merchant feed", () => {
       const item = product(); item.media[0]!.url = url;
       expect(buildMerchantFeed([item], origin).report.eligibleItems).toBe(0);
     }
-    const item = product(); item.media.push({ ...item.media[0]!, id: "specific", variantId: "v-100", url: "/uploads/cumin-100.jpg" });
-    expect(buildMerchantFeed([item], origin).xml).toContain("<g:image_link>https://srivarahitraders.example/uploads/cumin-100.jpg</g:image_link>");
+    const item = product(); item.media.push({ ...item.media[0]!, id: "specific", variantId: "v-100", url: "/uploads/groundnut-oil-100.jpg" });
+    expect(buildMerchantFeed([item], origin).xml).toContain("<g:image_link>https://srivarahitraders.example/uploads/groundnut-oil-100.jpg</g:image_link>");
     expect(publicHttpUrl("http://[::1]/a.jpg", origin)).toBeUndefined();
   });
 
@@ -83,7 +84,7 @@ describe("Search discovery", () => {
   it("excludes explicitly marked samples while retaining real out-of-stock products", () => {
     const sample = product({ id: "sample-preview", slug: "sample-preview", specifications: { " CATALOG   PURPOSE ": " sample ", "Identifier exists": "no" } });
     sample.variants = sample.variants.map((variant) => ({ ...variant, id: `sample-${variant.id}`, stock: 0, reserved: 0 }));
-    const real = product({ id: "real-sold-out", slug: "real-sold-out", name: "Sample size spice pack" });
+    const real = product({ id: "real-sold-out", slug: "real-sold-out", name: "Sample size oil bottle" });
     real.variants = real.variants.map((variant) => ({ ...variant, stock: 0, reserved: 0, sku: `SAMPLE-${variant.sku}` }));
     const result = buildMerchantFeed([sample, real], origin);
     expect(result.report).toMatchObject({ activeProducts: 2, eligibleItems: 2, excludedItems: 2 });
@@ -100,9 +101,9 @@ describe("Search discovery", () => {
   it("does not infer sample status from unrelated specifications or names", () => {
     const cases: Array<Record<string, string>> = [{ Purpose: "Sample" }, { "Catalog purpose": "Sample packaging" }, { "Catalog purpose": "Retail" }];
     for (const specifications of cases) {
-      const item = product({ name: "Sample size spice pack", specifications: { ...specifications, "Identifier exists": "no" } });
+      const item = product({ name: "Sample size oil bottle", specifications: { ...specifications, "Identifier exists": "no" } });
       expect(buildMerchantFeed([item], origin).report.eligibleItems).toBe(2);
-      expect(buildSitemap([item], origin)).toContain("/product/cumin-coriander");
+      expect(buildSitemap([item], origin)).toContain("/product/groundnut-sesame-oils");
     }
   });
 
@@ -112,7 +113,7 @@ describe("Search discovery", () => {
     expect((xml.match(/<url>/g) || []).length).toBe(111);
     expect(xml).toContain("product-104");
     expect(xml).toContain("<lastmod>2026-09-29T00:00:00.000Z</lastmod>");
-    expect(xml).toContain("<image:loc>https://srivarahitraders.example/uploads/cumin.jpg</image:loc>");
+    expect(xml).toContain("<image:loc>https://srivarahitraders.example/uploads/groundnut-oil.jpg</image:loc>");
     for (const value of ["/admin", "/account", "/checkout", "?variant=", "/product/draft"]) expect(xml).not.toContain(value);
   });
 

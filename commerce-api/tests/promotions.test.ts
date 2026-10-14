@@ -27,7 +27,7 @@ it("preserves existing campaigns on upgrade and removes both popup types when sw
 
 it("keeps popup offers away from authentication, checkout and account pages", () => {
   for (const path of ["/login", "/signup", "/cart", "/checkout", "/customer", "/customer/orders", "/account", "/admin", "/admin/marketing", "/order-confirmation/123"]) expect(canShowOfferOnPath(path)).toBe(false);
-  for (const path of ["/", "/shop", "/product/turmeric"]) expect(canShowOfferOnPath(path)).toBe(true);
+  for (const path of ["/", "/shop", "/product/sesame-oil"]) expect(canShowOfferOnPath(path)).toBe(true);
   expect(popupFrequencyAllows("ONCE", "1000", 86402000)).toBe(false);
   expect(popupFrequencyAllows("DAILY", "1000", 1001)).toBe(false);
   expect(popupFrequencyAllows("DAILY", "1000", 86401000)).toBe(true);

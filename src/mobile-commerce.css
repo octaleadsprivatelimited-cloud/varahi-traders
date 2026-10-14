@@ -1878,7 +1878,7 @@
   }
 }
 
-/* This client has a longer brand name than the source store. */
+/* Keep the Sri Varahi Traders brand readable on mobile. */
 @media (max-width: 600px) {
   .store-header .brand { min-width: 0; gap: 8px; }
   .store-header .brand span { max-width: 150px; font-size: 12px; line-height: 1.3; white-space: normal; overflow: visible; text-overflow: clip; }

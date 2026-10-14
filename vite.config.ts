@@ -3,7 +3,6 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig(({ command }) => ({
   server: {
@@ -12,7 +11,6 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     tailwindcss(),
-    tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tanstackStart({
       server: { entry: "server" },
     }),
@@ -26,6 +24,7 @@ export default defineConfig(({ command }) => ({
     viteReact(),
   ],
   resolve: {
+    tsconfigPaths: true,
     dedupe: ["react", "react-dom", "@tanstack/react-router"],
   },
 }));

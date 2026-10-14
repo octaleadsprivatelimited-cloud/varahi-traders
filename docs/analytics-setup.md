@@ -1,12 +1,12 @@
 # Sri Varahi Traders analytics setup and checks
 
-Use **admin@srivarahi.example** as the owner of the Google Analytics, Microsoft Clarity and Meta business assets. Do not configure assets owned by another signed-in account. Tracking IDs are public identifiers; no API secret or personal account password belongs in these settings.
+Use Varahi’s approved owner account for the Google Analytics, Microsoft Clarity and Meta business assets. Do not configure assets owned by another signed-in account. Tracking IDs are public identifiers; no API secret or personal account password belongs in these settings.
 
 ## Connect providers
 
 In the live site's **Admin → Integrations → LIVE → Analytics**, enable the relevant card and save its public ID:
 
-- **Google Analytics 4:** Measurement ID (`G-…`) from the website data stream. Set the stream URL to `https://srivarahitraders.example`. Disable **Enhanced Measurement** for this stream, including browser-history page changes, form interactions and site search. This application emits its own page views and ecommerce events. `send_page_view: false` by itself does not disable GA4's enhanced history tracking. Google signals, advertising personalization and ad storage stay disabled in this implementation.
+- **Google Analytics 4:** Measurement ID (`G-…`) from the website data stream. Set the stream URL to `https://<Varahi-domain>`. Disable **Enhanced Measurement** for this stream, including browser-history page changes, form interactions and site search. This application emits its own page views and ecommerce events. `send_page_view: false` by itself does not disable GA4's enhanced history tracking. Google signals, advertising personalization and ad storage stay disabled in this implementation.
 - **Microsoft Clarity:** Project ID from Settings → Setup. Set the correct site URL, strict masking and cookie consent required in Clarity. The application sends Consent V2 with analytics storage granted only after analytics opt-in; advertising storage remains denied. Do not unmask account, checkout or personal information.
 - **Meta Pixel:** Pixel/dataset ID from the business's Events Manager. Keep automatic events and automatic advanced matching disabled. Only the application's explicit merchandise and conversion payloads should be sent. A Pixel ID is not a Conversions API token; this implementation does not require a server token.
 

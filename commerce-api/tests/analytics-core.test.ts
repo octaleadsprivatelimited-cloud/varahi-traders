@@ -8,7 +8,7 @@ let win: any;
 let doc: any;
 const grant = (analytics = true, advertising = true) => storage.set(consentKey, JSON.stringify({ version: 1, analytics, advertising, updatedAt: Date.now() }));
 const commands = () => (win.dataLayer || []).map((args: IArguments) => Array.from(args));
-const purchase = { transaction_id: "RUC-2026001", value: 99, currency: "INR", shipping: 15, tax: 5, items: [{ item_id: "variant_123", item_name: "Turmeric powder", price: 99, quantity: 1 }] };
+const purchase = { transaction_id: "SVT-2026001", value: 99, currency: "INR", shipping: 15, tax: 5, items: [{ item_id: "variant_123", item_name: "Sesame oil", price: 99, quantity: 1 }] };
 beforeEach(() => {
   vi.resetModules();
   storage = new Map(); scripts = [];
@@ -43,7 +43,7 @@ describe("consent-aware analytics delivery", () => {
     const analytics = await import(analyticsModule); await analytics.initializeAnalytics();
     expect(scripts).toHaveLength(0);
     expect(analytics.trackCommerceEvent("purchase", purchase)).toBe(false);
-    for (const path of ["/admin", "/admin/orders", "/login", "/track", "/account", "/transaction/FW-123", "/unknown/customer-email"]) expect(analytics.analyticsPath(path)).toBeNull();
+    for (const path of ["/admin", "/admin/orders", "/login", "/track", "/account", "/transaction/SVT-123", "/unknown/customer-email"]) expect(analytics.analyticsPath(path)).toBeNull();
   });
   it("stops recordings and pixel before a private history transition", async () => {
     grant(); const analytics = await import(analyticsModule); await analytics.initializeAnalytics();

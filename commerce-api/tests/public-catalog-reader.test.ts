@@ -21,11 +21,11 @@ it("renders the empty live catalog even when loopback HTTP is unavailable", asyn
 });
 
 it("reads fresh public product snapshots without a stale server cache", async () => {
-  let catalog = [{ id: "turmeric", name: "Turmeric powder", status: "ACTIVE", variants: [] }];
+  let catalog = [{ id: "sesame-oil", name: "Sesame oil", status: "ACTIVE", variants: [] }];
   registry[readerKey] = () => catalog;
-  expect((await readPublicProduct("turmeric"))?.name).toBe("Turmeric powder");
+  expect((await readPublicProduct("sesame-oil"))?.name).toBe("Sesame oil");
   catalog = [];
-  expect(await readPublicProduct("turmeric")).toBeNull();
+  expect(await readPublicProduct("sesame-oil")).toBeNull();
   expect(await readPublicCatalog()).toEqual([]);
 });
 

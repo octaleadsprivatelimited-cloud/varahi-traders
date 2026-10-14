@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 const modulePath = "../../src/lib/transactions.ts";
 const { transactionState, collectedPayments, confirmedOrLatestPayment, settledRefundAmount, loginReturnPath } = await import(modulePath);
-const payment = (status: string, createdAt = "2026-10-14T01:00:00Z") => ({ id: status, orderId: "order1", orderNumber: "FW-1", orderStatus: "PAID", provider: "cashfree", status, amount: 100, currency: "INR", refundedAmount: 0, refunds: [], events: [], createdAt });
+const payment = (status: string, createdAt = "2026-10-14T01:00:00Z") => ({ id: status, orderId: "order1", orderNumber: "SVT-1", orderStatus: "PAID", provider: "cashfree", status, amount: 100, currency: "INR", refundedAmount: 0, refunds: [], events: [], createdAt });
 it("shows confirmed, failed, pending, captured and refund states without treating authorization as collection", () => {
   expect(transactionState("CAPTURED", "PAID").kind).toBe("success");
   expect(transactionState("AUTHORIZED", "PAYMENT_PENDING").kind).toBe("pending");
@@ -26,6 +26,6 @@ it("counts only successful refunds and keeps pending refunds separate", () => {
   expect(settledRefundAmount({ ...payment("CAPTURED"), refundedAmount: 50 })).toBe(0);
 });
 it("returns Google sign-in only to an internal transaction page", () => {
-  expect(loginReturnPath("?returnTo=%2Ftransaction%2FFW-123")).toBe("/transaction/FW-123");
+  expect(loginReturnPath("?returnTo=%2Ftransaction%2FSVT-123")).toBe("/transaction/SVT-123");
   for (const value of ["//evil.test", "https://evil.test", "/login", "/transaction/one?email=secret", "/transaction/one#secret"]) expect(loginReturnPath(`?returnTo=${encodeURIComponent(value)}`)).toBeNull();
 });

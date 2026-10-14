@@ -107,7 +107,7 @@ describe("commerce API", () => {
     const originalSlug = product.slug;
     const originalStatus = product.status;
     try {
-      product.slug = "custom-spice-url-from-admin";
+      product.slug = "custom-oil-url-from-admin";
       for (const key of [product.id, product.slug]) {
         const response = await request(`/api/v1/products/${key}`);
         expect(response.status).toBe(200);
@@ -294,22 +294,22 @@ describe("commerce API", () => {
   });
   it("creates and archives variant products", async () => {
     const payload = {
-      name: "Linen Dress",
-      slug: "linen-dress",
-      description: "A long-lasting linen dress made in small batches.",
-      category: "Wardrobe",
+      name: "Groundnut Oil",
+      slug: "groundnut-oil",
+      description: "An oil bottle fixture for catalog tests.",
+      category: "Cooking Oils",
       status: "ACTIVE",
       taxRate: 12,
       hsnCode: "6204",
       variants: [
         {
-          sku: "FW-DRS-M",
-          title: "M / Navy",
+          sku: "SVT-DSVT-M",
+          title: "1 L",
           price: 4990,
           mrp: 5990,
           stock: 10,
           reserved: 0,
-          attributes: { Size: "M", Color: "Navy" },
+          attributes: { Volume: "1 L" },
           weightGrams: 450,
         },
       ],
@@ -320,7 +320,7 @@ describe("commerce API", () => {
       body: JSON.stringify(payload),
     });
     expect(made.status).toBe(201);
-    expect(made.body.data.variants[0].attributes.Size).toBe("M");
+    expect(made.body.data.variants[0].attributes.Volume).toBe("1 L");
     const archived = await request(
       `/api/v1/admin/products/${made.body.data.id}`,
       { method: "DELETE", headers: { authorization: `Bearer ${adminToken}` } },
@@ -424,24 +424,24 @@ describe("commerce API", () => {
     const smallId = crypto.randomUUID(),
       largeId = crypto.randomUUID();
     const payload = {
-      name: "Admin Matrix Dress",
-      slug: `admin-matrix-dress-${crypto.randomUUID().slice(0, 8)}`,
+      name: "Admin Matrix Oil",
+      slug: `admin-matrix-oil-${crypto.randomUUID().slice(0, 8)}`,
       description: "A test product used to verify the complete admin catalog workflow.",
-      category: "Wardrobe",
+      category: "Cooking Oils",
       brand: "Sri Varahi Traders Test",
       status: "ACTIVE",
       taxRate: 12,
-      specifications: { Material: "Linen" },
+      specifications: { "Oil type": "Groundnut" },
       media: [
         {
           url: "https://example.com/admin-matrix-front.webp",
-          alt: "Dress front",
+          alt: "Oil bottle front",
           type: "IMAGE",
           position: 0,
         },
         {
           url: "https://example.com/admin-matrix-back.webp",
-          alt: "Dress back",
+          alt: "Oil bottle back",
           type: "IMAGE",
           position: 1,
         },
@@ -449,7 +449,7 @@ describe("commerce API", () => {
       variants: [
         {
           id: smallId,
-          sku: `TEST-DRESS-S-${crypto.randomUUID().slice(0, 8)}`,
+          sku: `TEST-OIL-S-${crypto.randomUUID().slice(0, 8)}`,
           title: "Small",
           active: true,
           price: 3990,
@@ -461,7 +461,7 @@ describe("commerce API", () => {
         },
         {
           id: largeId,
-          sku: `TEST-DRESS-L-${crypto.randomUUID().slice(0, 8)}`,
+          sku: `TEST-OIL-L-${crypto.randomUUID().slice(0, 8)}`,
           title: "Large",
           active: true,
           price: 4190,
@@ -618,7 +618,7 @@ describe("commerce API", () => {
   it("records idempotent inventory adjustments and paginated movement history", async () => {
     const product = store
       .listProducts()
-      .find((candidate) => candidate.name === "Admin Matrix Dress")!;
+      .find((candidate) => candidate.name === "Admin Matrix Oil")!;
     const variant = product.variants.find((candidate) => candidate.active)!;
     const before = variant.stock;
     const inventory = await request(

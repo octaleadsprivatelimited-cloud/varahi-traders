@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: commerce-ci-${{ github.ref }}
+  group: varahi-ci-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -26,9 +26,9 @@ jobs:
       mysql:
         image: ${{ matrix.database }}
         env:
-          MYSQL_USER: commerce
-          MYSQL_PASSWORD: commerce_test
-          MYSQL_DATABASE: commerce
+          MYSQL_USER: varahi
+          MYSQL_PASSWORD: varahi_test
+          MYSQL_DATABASE: sri_varahi_traders_test
           MYSQL_ROOT_PASSWORD: root_test
         ports: ["3306:3306"]
         options: >-
@@ -37,7 +37,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: mysql://commerce:commerce_test@localhost:3306/commerce
+      DATABASE_URL: mysql://varahi:varahi_test@localhost:3306/sri_varahi_traders_test
       RUN_DB_TESTS: "1"
       NODE_ENV: test
       JWT_SECRET: ci-access-secret-that-is-at-least-32-characters
