@@ -1,6 +1,6 @@
 # Sri Varahi Traders — Cold Pressed Oils
 
-Independent client copy of the Ruchi commerce platform, adapted for cold-pressed oils. This folder has its own Git history, environment secrets, database, Docker volumes, uploads and browser storage. No Git remote or live provider accounts are configured.
+Independent client copy of the Ruchi commerce platform, adapted for cold-pressed oils. This folder has its own Git history, environment secrets, database, Docker volumes, uploads and browser storage. The code is connected to [the dedicated Sri Varahi Traders GitHub repository](https://github.com/octaleadsprivatelimited-cloud/varahi-traders) on `codex/sri-varahi-traders`. Live provider accounts are not configured.
 
 ## Same stack and feature set
 
@@ -33,7 +33,7 @@ You can also double-click `START-WEBSITE.command` after installing dependencies 
 - Google sign-in is intentionally disconnected: supply this client's FIREBASE_PROJECT_ID, FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN and FIREBASE_APP_ID. Set STORE_ADMIN_EMAIL to their verified admin Google account. Blank admin configuration grants no admin rights. There is no bypass login.
 - Add this client's own Cashfree, Shiprocket, email and analytics settings. None of the old client's integrations, credentials, customer records, orders, verification tags or tracking IDs were copied. Production checkout retains the original shipping/payment readiness guards.
 - Set APP_URL, VITE_PUBLIC_SITE_URL, CORS_ORIGINS, PUBLIC_UPLOAD_BASE_URL and primaryDomain for the verified live domain. Use a new hosted MySQL database, durable uploads directory and fresh production secrets.
-- CI verifies this client code but has no automatic release/deployment job. Add a NEW GitHub remote and NEW hosting project when ready; never point this folder at the source store's deployment.
+- CI verifies this client code but has no automatic release/deployment job. The dedicated GitHub repository is connected. Create a NEW hosting project when ready; never point this folder at the source store's deployment.
 
 ## Checks
 

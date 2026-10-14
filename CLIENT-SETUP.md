@@ -15,7 +15,8 @@ Created from source commit 35b3018 of the existing commerce application. Only tr
 | Docker volumes | varahi_mysql / varahi_redis (project scoped) |
 | Browser data | varahi / sri-varahi-traders namespaced |
 | Production uploads | ~/.local/share/sri-varahi-traders/<new-domain>/uploads |
-| Git remote | None |
+| Git remote | https://github.com/octaleadsprivatelimited-cloud/varahi-traders.git |
+| Source branch | codex/sri-varahi-traders |
 | Client integrations | Unconfigured |
 
 The working demo has eight sample oil products and the same checkout/coupon/account/admin capabilities. Auth, payments, shipping, mail and analytics need the new client's own configuration. Contact details and legal identifiers remain empty at the user's request. No external orders or messages are sent by cloning or previewing.
